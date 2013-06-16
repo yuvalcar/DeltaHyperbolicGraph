@@ -21,6 +21,7 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.PathExpander;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipExpander;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.graphdb.traversal.Traverser;
@@ -37,6 +38,8 @@ import scala.collection.immutable.VectorIterator;
  */
 public class DijkstraExample
 {
+	public static final int GraphSize = 36691;
+	public static final String GraphName = "input_graphs/Email-Enron.txt";
 	public final ExampleGraphService graph;
 
 	private static final RelationshipExpander expander;
@@ -63,7 +66,7 @@ public class DijkstraExample
 
 		try {
 			System.out.println("Parsing graph");
-			br = new BufferedReader(new FileReader ("input_graphs/Email-Enron.txt"));
+			br = new BufferedReader(new FileReader (GraphName));
 			String line = br.readLine();
 			int lineCount = 1;
 			
@@ -86,13 +89,34 @@ public class DijkstraExample
 		}
 
 	}
+	
+	
+	public void printGraph()
+	{
+		for (int i = 1; i<=GraphSize; ++i)
+		{
+			Node iNode = graph.getNode(Integer.toString(i));
+			System.out.print("Node " + i);
+			for (Relationship j : iNode.getRelationships())
+			{
+				for (Node k : j.getNodes())
+				{
+					System.out.print("->" + k.toString());
+				}
+				
+				System.out.print(" ");
+			}
+			
+			System.out.println();
+		}
+	}
 
 	/**
 	 * Find the path.
 	 */
 	private int findShortestPath(Node start, Node end)
 	{
-		PathFinder<Path> finder = GraphAlgoFactory.shortestPath(expander, 36691);
+		PathFinder<Path> finder = GraphAlgoFactory.shortestPath(expander, GraphSize);
 
 		return finder.findSinglePath(start, end).length();        
 	}
@@ -117,16 +141,20 @@ public class DijkstraExample
 		try {
 			de.createGraph();
 			System.out.println("Done creating graph");
-			final int dTotal = 36691;
-			int dIterations = 10*(int) Math.log(dTotal);
+			de.printGraph();
+			
+			final int dTotal = GraphSize;
+			final int dTotalLog = (int)Math.log(dTotal);
+			int dIterations = 500*dTotalLog;
 			double maxDelta = 0;
-			TraversalDescription td = new TraversalDescriptionImpl();
+			/*TraversalDescription td = new TraversalDescriptionImpl();
 
 
 			System.out.println("Starting samples - number of iteration " + dIterations);
-			int minPosition = 0;//(dTotal/2 - 2*(int)Math.log(dTotal))/2;
-			int maxPosition = 0;//(dTotal/2 + 2*(int)Math.log(dTotal))/2;
+			int minPosition = 0;
+			int maxPosition = 0;
 
+			
 			for(int i=0; i<dIterations; ++i)
 			{
 				int aIndex = (int) (Math.ceil(Math.random() * dTotal));
@@ -147,14 +175,14 @@ public class DijkstraExample
 				}
 				
 				System.out.println(i + " BFS size " + size); 
-				if (size < (int)Math.sqrt(dTotal))
+				if (size < dTotalLog)
 				{
 					System.out.println("Too small, jumping...");
 					continue;
 				}
 				
-				minPosition = (size/2 - 4*(int)Math.log(size))/2;
-				maxPosition = (size/2 + 4*(int)Math.log(size))/2;
+				minPosition = (size/2 - 4*(int)Math.sqrt(size))/2;
+				maxPosition = (size/2 + 4*(int)Math.sqrt(size))/2;
 
 				for (Node node : bfsTraverser.nodes())
 				{
@@ -194,7 +222,7 @@ public class DijkstraExample
 
 							if(d1< d2 && d1<d3)
 								intermediateDelta = ((double)Math.abs(d2-d3))/2;
-							else if(d2< d3 && d2<d3)
+							else if(d2< d3 && d2<d1)
 								intermediateDelta = ((double)Math.abs(d1-d3))/2;
 							else
 								intermediateDelta = ((double)Math.abs(d1-d2))/2;
@@ -205,6 +233,44 @@ public class DijkstraExample
 								System.out.println("New max delta " + intermediateDelta);
 								maxDelta = intermediateDelta;
 							}
+						}
+					}
+				}
+			}*/
+			
+			for (int a=1; a<=dTotal; ++a)
+			{
+				for (int b=a+1; b<=dTotal; ++b)
+				{
+					for (int c=b+1; c<=dTotal; ++c)
+					{
+						for (int d=c+1; d<=dTotal; ++d)
+						{
+							int ab = de.findShortestPath(de.graph.getNode(Integer.toString(a)), de.graph.getNode(Integer.toString(b)));
+							int ac = de.findShortestPath(de.graph.getNode(Integer.toString(a)), de.graph.getNode(Integer.toString(c)));
+							int ad = de.findShortestPath(de.graph.getNode(Integer.toString(a)), de.graph.getNode(Integer.toString(d)));
+							int bc = de.findShortestPath(de.graph.getNode(Integer.toString(b)), de.graph.getNode(Integer.toString(c)));
+							int bd = de.findShortestPath(de.graph.getNode(Integer.toString(b)), de.graph.getNode(Integer.toString(d)));
+							int cd = de.findShortestPath(de.graph.getNode(Integer.toString(c)), de.graph.getNode(Integer.toString(d)));
+
+							int d1 = ab+cd;
+							int d2 = ac+bd;
+							int d3 = ad+bc;
+
+							double intermediateDelta;
+
+							if(d1<=d2 && d1<=d3)
+								intermediateDelta = ((double)Math.abs(d2-d3))/2;
+							else if(d2<=d1 && d2<=d3)
+								intermediateDelta = ((double)Math.abs(d1-d3))/2;
+							else
+								intermediateDelta = ((double)Math.abs(d1-d2))/2;
+
+							if(maxDelta < intermediateDelta)
+								maxDelta = intermediateDelta;
+							
+							System.out.println("a = " + a + " & b = "+ b + " & c = " + c+ " & d = " + d + " & tempDelta = " + maxDelta);
+
 						}
 					}
 				}

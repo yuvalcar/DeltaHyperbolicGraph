@@ -61,7 +61,7 @@ public class ExampleGraphService
             // find/create nodes
             Node firstNode = findOrCreateNode( fromNodeName );
             Node secondNode = findOrCreateNode( toNodeName );
-
+            
             // add relationship
             firstNode.createRelationshipTo( secondNode, MyDijkstraTypes.REL );
 
