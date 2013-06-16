@@ -62,14 +62,18 @@ public class DijkstraExample
 		BufferedReader br = null;
 
 		try {
+			System.out.println("Parsing graph");
 			br = new BufferedReader(new FileReader ("input_graphs/Email-Enron.txt"));
 			String line = br.readLine();
-
+			int lineCount = 1;
+			
 			while (line != null)
 			{
+				System.out.println("Creating line "+ lineCount + " : " + line);
 				String[] nodes = line.split("\t");
 				graph.createRelationship(nodes[0], nodes[1]);		
 				line = br.readLine();
+				++lineCount;
 			}
 
 		} catch (IOException e) {
@@ -108,59 +112,67 @@ public class DijkstraExample
 	 */
 	public static void main( final String[] args )
 	{
+		System.out.println("Creating Graph...");
 		DijkstraExample de = new DijkstraExample();
 		try {
 			de.createGraph();
+			System.out.println("Done creating graph");
 			final int dTotal = 36691;
-			int dIterations = 100*(int) Math.log(dTotal);
+			int dIterations = 10*(int) Math.log(dTotal);
 			double maxDelta = 0;
 			TraversalDescription td = new TraversalDescriptionImpl();
 
 
-			System.out.println("Number of iteration " + dIterations);
-			int minPosition = (dTotal/2 - 2*(int)Math.log(dTotal))/2;
-			int maxPosition = (dTotal/2 + 2*(int)Math.log(dTotal))/2;
+			System.out.println("Starting samples - number of iteration " + dIterations);
+			int minPosition = 0;//(dTotal/2 - 2*(int)Math.log(dTotal))/2;
+			int maxPosition = 0;//(dTotal/2 + 2*(int)Math.log(dTotal))/2;
 
-			System.out.println("minPosition " + minPosition + " maxPosotion " + maxPosition);
-
-			for (int k=0; k<5; ++k)
+			for(int i=0; i<dIterations; ++i)
 			{
-				for(int i=0; i<dIterations; ++i)
+				int aIndex = (int) (Math.ceil(Math.random() * dTotal));
+				Node a = de.graph.getNode(Integer.toString(aIndex));
+
+				Traverser bfsTraverser = td.breadthFirst().traverse(a);
+
+				Vector<Node> cAndD = new Vector<Node>();
+				Vector<Node> bNodes = new Vector<Node>();
+				int counter  = 0;
+				int size = 0;
+
+				Iterator<Node> aIterator = bfsTraverser.nodes().iterator();
+				while (aIterator.hasNext())
 				{
-					int aIndex = (int) (Math.ceil(Math.random() * dTotal));
-					Node a = de.graph.getNode(Integer.toString(aIndex));
+					++size;
+					aIterator.next();
+				}
+				
+				System.out.println(i + " BFS size " + size); 
+				if (size < (int)Math.sqrt(dTotal))
+				{
+					System.out.println("Too small, jumping...");
+					continue;
+				}
+				
+				minPosition = (size/2 - 4*(int)Math.log(size))/2;
+				maxPosition = (size/2 + 4*(int)Math.log(size))/2;
 
-					Traverser bfsTraverser = td.breadthFirst().traverse(a);
+				for (Node node : bfsTraverser.nodes())
+				{
 
-					Vector<Node> cAndD = new Vector<Node>();
-					Node b = null;
-					int counter  = 0;
-					int size = 0;
-
-					Iterator<Node> aIterator = bfsTraverser.nodes().iterator();
-					while (aIterator.hasNext())
+					if (counter > minPosition && counter < maxPosition)
 					{
-						++size;
-						aIterator.next();
+						cAndD.add(node);
 					}
 
-					minPosition = (size/2 - 2*(int)Math.log(size))/2;
-					maxPosition = (size/2 + 2*(int)Math.log(size))/2;
+					if ((size > 4 && (size-4 == counter)) || (size > 3 && (size -3 == counter)) || (size > 2 && (size-2 == counter)))
+						bNodes.add(node);
 
-					for (Node node : bfsTraverser.nodes())
-					{
+					++counter;
+				}
 
-						if (counter > minPosition && counter < maxPosition)
-						{
-							cAndD.add(node);
-						}
-
-						if (counter == size-2)
-							b = node;
-
-						++counter;
-					}
-
+				for (Iterator<Node> bIterator = bNodes.iterator(); bIterator.hasNext();)
+				{
+					Node b = bIterator.next();
 					int ab = de.findShortestPath(a, b);
 					for (Iterator<Node> cIterator = cAndD.iterator(); cIterator.hasNext();)
 					{
@@ -196,9 +208,8 @@ public class DijkstraExample
 						}
 					}
 				}
-				System.out.println("Iteration " + k + " maxDelta is: "+maxDelta);
 			}
-
+			System.out.println("MaxDelta is: "+maxDelta);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
