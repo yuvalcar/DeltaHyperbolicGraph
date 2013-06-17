@@ -12,6 +12,7 @@ import java.util.Vector;
 
 import org.apache.lucene.search.FieldComparator.RelevanceComparator;
 import org.apache.lucene.search.TimeLimitingCollector.TimerThread;
+import org.neo4j.cypher.internal.pipes.TimeReader;
 import org.neo4j.graphalgo.CommonEvaluators;
 import org.neo4j.graphalgo.CostEvaluator;
 import org.neo4j.graphalgo.GraphAlgoFactory;
@@ -38,8 +39,8 @@ import scala.collection.immutable.VectorIterator;
  */
 public class DijkstraExample
 {
-	public static final int GraphSize = 36691;
-	public static final String GraphName = "input_graphs/Email-Enron.txt";
+	public static final int GraphSize = 62;
+	public static final String GraphName = "input_graphs/dolphins.txt";
 	public final ExampleGraphService graph;
 
 	private static final RelationshipExpander expander;
@@ -75,7 +76,7 @@ public class DijkstraExample
 				//System.out.print(".");
 				if (lineCount % 1000 == 0)
 					System.out.println("Creating line "+ lineCount);
-				String[] nodes = line.split("\t");
+				String[] nodes = line.split(" ");
 				graph.createRelationship(nodes[0], nodes[1]);		
 				line = br.readLine();
 				++lineCount;
@@ -155,8 +156,8 @@ public class DijkstraExample
 			//de.printGraph();
 
 			final int dTotal = GraphSize;
-			final int dTotalLog = (int)Math.log(dTotal);
-			int dIterations = 10*dTotalLog;
+			final int dTotalLog = (int)(Math.log(dTotal)/Math.log(2));
+			int dIterations =100* dTotalLog;
 			double maxDelta = 0;
 			TraversalDescription td = new TraversalDescriptionImpl();
 
@@ -165,11 +166,13 @@ public class DijkstraExample
 			int minPosition = 0;
 			int maxPosition = 0;
 			int lastBFSSize = -1;
-
+			
+			long firstTime = new TimeReader().getTime();
 
 			for(int i=0; i<dIterations; ++i)
 			{
-				int aIndex = (int) (Math.ceil(Math.random() * dTotal));
+				System.out.println("Iteration = " + i);
+				int aIndex = (int) (Math.ceil(Math.random() * (dTotal-1))+1);
 				Node a = de.graph.getNode(Integer.toString(aIndex));
 
 				Traverser bfsTraverser = td.breadthFirst().traverse(a);
@@ -183,6 +186,13 @@ public class DijkstraExample
 				Iterator<Node> aIterator = bfsTraverser.nodes().iterator();
 				while (aIterator.hasNext())
 				{
+					a = aIterator.next();
+				}
+				
+				bfsTraverser = td.breadthFirst().traverse(a);
+				aIterator = bfsTraverser.nodes().iterator();
+				while (aIterator.hasNext())
+				{
 					++size;
 					aIterator.next();
 				}
@@ -191,7 +201,7 @@ public class DijkstraExample
 				{
 					System.out.println(i + " BFS size " + size);
 					lastBFSSize = size;
-					logSize = (int)Math.log(size);
+					logSize = (int)(Math.log(size)/Math.log(2));
 					minPosition = logSize;
 					maxPosition = minPosition + logSize;
 				}
@@ -210,7 +220,7 @@ public class DijkstraExample
 						cAndD.add(node);
 					}
 
-					if (counter > size - Math.pow(logSize, 2) && counter % logSize == 0)
+					if (counter > size - Math.pow(logSize, 2)/4 && counter % logSize == 0)
 						bNodes.add(node);
 
 					++counter;
@@ -238,9 +248,9 @@ public class DijkstraExample
 
 							double intermediateDelta;
 
-							if(d1< d2 && d1<d3)
+							if(d1<=d2 && d1<=d3)
 								intermediateDelta = ((double)Math.abs(d2-d3))/2;
-							else if(d2< d3 && d2<d1)
+							else if(d2<=d3 && d2<=d1)
 								intermediateDelta = ((double)Math.abs(d1-d3))/2;
 							else
 								intermediateDelta = ((double)Math.abs(d1-d2))/2;
@@ -306,6 +316,9 @@ public class DijkstraExample
 				}
 			}*/
 			System.out.println("MaxDelta is: "+maxDelta);
+			long secondTime = new TimeReader().getTime();
+			
+			System.out.println("Total time = " + (secondTime - firstTime) + " ms");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
