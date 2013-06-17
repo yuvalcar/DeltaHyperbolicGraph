@@ -69,15 +69,18 @@ public class DijkstraExample
 			br = new BufferedReader(new FileReader (GraphName));
 			String line = br.readLine();
 			int lineCount = 1;
-			
+
 			while (line != null)
 			{
-				System.out.println("Creating line "+ lineCount + " : " + line);
+				//System.out.print(".");
+				if (lineCount % 1000 == 0)
+					System.out.println("Creating line "+ lineCount);
 				String[] nodes = line.split("\t");
 				graph.createRelationship(nodes[0], nodes[1]);		
 				line = br.readLine();
 				++lineCount;
 			}
+			System.out.println();
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -89,8 +92,8 @@ public class DijkstraExample
 		}
 
 	}
-	
-	
+
+
 	public void printGraph()
 	{
 		for (int i = 1; i<=GraphSize; ++i)
@@ -103,10 +106,10 @@ public class DijkstraExample
 				{
 					System.out.print("->" + k.toString());
 				}
-				
+
 				System.out.print(" ");
 			}
-			
+
 			System.out.println();
 		}
 	}
@@ -116,9 +119,17 @@ public class DijkstraExample
 	 */
 	private int findShortestPath(Node start, Node end)
 	{
+		if (start == null || end == null)
+			return -1;
+
 		PathFinder<Path> finder = GraphAlgoFactory.shortestPath(expander, GraphSize);
 
-		return finder.findSinglePath(start, end).length();        
+		Path sPath = finder.findSinglePath(start, end);
+
+		if (null == sPath)
+			return -1;
+		else
+			return sPath.length();        
 	}
 
 	/**
@@ -141,20 +152,21 @@ public class DijkstraExample
 		try {
 			de.createGraph();
 			System.out.println("Done creating graph");
-			de.printGraph();
-			
+			//de.printGraph();
+
 			final int dTotal = GraphSize;
 			final int dTotalLog = (int)Math.log(dTotal);
-			int dIterations = 500*dTotalLog;
+			int dIterations = 10*dTotalLog;
 			double maxDelta = 0;
-			/*TraversalDescription td = new TraversalDescriptionImpl();
+			TraversalDescription td = new TraversalDescriptionImpl();
 
 
 			System.out.println("Starting samples - number of iteration " + dIterations);
 			int minPosition = 0;
 			int maxPosition = 0;
+			int lastBFSSize = -1;
 
-			
+
 			for(int i=0; i<dIterations; ++i)
 			{
 				int aIndex = (int) (Math.ceil(Math.random() * dTotal));
@@ -166,6 +178,7 @@ public class DijkstraExample
 				Vector<Node> bNodes = new Vector<Node>();
 				int counter  = 0;
 				int size = 0;
+				int logSize = 0;
 
 				Iterator<Node> aIterator = bfsTraverser.nodes().iterator();
 				while (aIterator.hasNext())
@@ -174,15 +187,20 @@ public class DijkstraExample
 					aIterator.next();
 				}
 				
-				System.out.println(i + " BFS size " + size); 
+				if (size != lastBFSSize)
+				{
+					System.out.println(i + " BFS size " + size);
+					lastBFSSize = size;
+					logSize = (int)Math.log(size);
+					minPosition = logSize;
+					maxPosition = minPosition + logSize;
+				}
+				
 				if (size < dTotalLog)
 				{
 					System.out.println("Too small, jumping...");
 					continue;
 				}
-				
-				minPosition = (size/2 - 4*(int)Math.sqrt(size))/2;
-				maxPosition = (size/2 + 4*(int)Math.sqrt(size))/2;
 
 				for (Node node : bfsTraverser.nodes())
 				{
@@ -192,7 +210,7 @@ public class DijkstraExample
 						cAndD.add(node);
 					}
 
-					if ((size > 4 && (size-4 == counter)) || (size > 3 && (size -3 == counter)) || (size > 2 && (size-2 == counter)))
+					if (counter > size - Math.pow(logSize, 2) && counter % logSize == 0)
 						bNodes.add(node);
 
 					++counter;
@@ -230,28 +248,39 @@ public class DijkstraExample
 							if(maxDelta < intermediateDelta)
 							{
 								System.out.println();
-								System.out.println("New max delta " + intermediateDelta);
 								maxDelta = intermediateDelta;
+								System.out.println("Delta changed : ");
+								System.out.println("a = " + a + " & b = "+ b + " & c = " + c+ " & d = " + d + " & tempDelta = " + maxDelta);
 							}
 						}
 					}
 				}
-			}*/
-			
+			}
+/*
+			final int error = -1;
 			for (int a=1; a<=dTotal; ++a)
 			{
+				Node aNode = de.graph.getNode(Integer.toString(a));
 				for (int b=a+1; b<=dTotal; ++b)
 				{
+					Node bNode = de.graph.getNode(Integer.toString(b));
+					int ab = de.findShortestPath(aNode, bNode);
 					for (int c=b+1; c<=dTotal; ++c)
 					{
+						Node cNode = de.graph.getNode(Integer.toString(c));
+						int ac = de.findShortestPath(aNode, cNode);
+						int bc = de.findShortestPath(bNode, cNode);
+
 						for (int d=c+1; d<=dTotal; ++d)
 						{
-							int ab = de.findShortestPath(de.graph.getNode(Integer.toString(a)), de.graph.getNode(Integer.toString(b)));
-							int ac = de.findShortestPath(de.graph.getNode(Integer.toString(a)), de.graph.getNode(Integer.toString(c)));
-							int ad = de.findShortestPath(de.graph.getNode(Integer.toString(a)), de.graph.getNode(Integer.toString(d)));
-							int bc = de.findShortestPath(de.graph.getNode(Integer.toString(b)), de.graph.getNode(Integer.toString(c)));
-							int bd = de.findShortestPath(de.graph.getNode(Integer.toString(b)), de.graph.getNode(Integer.toString(d)));
-							int cd = de.findShortestPath(de.graph.getNode(Integer.toString(c)), de.graph.getNode(Integer.toString(d)));
+							Node dNode = de.graph.getNode(Integer.toString(d));
+							int ad = de.findShortestPath(aNode, dNode);
+							int bd = de.findShortestPath(bNode, dNode);
+							int cd = de.findShortestPath(cNode, dNode);
+
+
+							if (error == ab || error == ac || error == ad || error == bc || error == bd || error == cd)
+								continue;
 
 							int d1 = ab+cd;
 							int d2 = ac+bd;
@@ -267,14 +296,15 @@ public class DijkstraExample
 								intermediateDelta = ((double)Math.abs(d1-d2))/2;
 
 							if(maxDelta < intermediateDelta)
+							{
 								maxDelta = intermediateDelta;
-							
-							System.out.println("a = " + a + " & b = "+ b + " & c = " + c+ " & d = " + d + " & tempDelta = " + maxDelta);
-
+								System.out.println("Delta changed : ");
+								System.out.println("a = " + a + " & b = "+ b + " & c = " + c+ " & d = " + d + " & tempDelta = " + maxDelta);
+							}
 						}
 					}
 				}
-			}
+			}*/
 			System.out.println("MaxDelta is: "+maxDelta);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

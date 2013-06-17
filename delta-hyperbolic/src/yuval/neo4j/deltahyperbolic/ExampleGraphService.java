@@ -7,6 +7,7 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.index.Index;
+import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.index.IndexService;
 import org.neo4j.util.GraphDatabaseLifecycle;
 
@@ -85,7 +86,11 @@ public class ExampleGraphService
      */
     public Node getNode( final String name )
     {
-        return index.get( NAME, name ).getSingle();
+        IndexHits<Node> ih = index.get(NAME, name);
+    	if (ih != null)
+    		return ih.getSingle();
+    	else
+    		return null;
     }
 
     /**
